@@ -31,8 +31,20 @@
 
 // キーレジスタ
 #define READ_KEY_REGISTER              0x42
-#define KEY_REGISTER_KS1_KS3           0x01
-#define KEY_REGISTER_KS2_KS3           0x10
+#define KEY_REG_BYTE                   4
+#if 1
+// QYF-TM1638基板はK1,K2の2x8=16bitなので0x66でマスク
+#define KEY_REG_KS1_KS2                0x66
+#define KEY_REG_KS3_KS4                0x66
+#define KEY_REG_KS5_KS6                0x66
+#define KEY_REG_KS7_KS8                0x66
+#else
+// 基板がK1,K2,K3の3x8=24bitなら0xEEでマスク
+#define KEY_REG_KS1_KS2                0xEE
+#define KEY_REG_KS3_KS4                0xEE
+#define KEY_REG_KS5_KS6                0xEE
+#define KEY_REG_KS7_KS8                0xEE
+#endif
 
 // 7セグのビットパターン (MSB: dot, g, f, e, d, c, b, a)
 #define SEG_LED_0                      0b00111111  // 0
@@ -81,7 +93,7 @@ typedef struct {
     uint8_t key_bit_cnt;    // キースイッチの数（MAX:3x8）
 } tm1638_t;
 
-uint8_t tm1638_read_key_register(void);
+uint8_t tm1638_read_key(void);
 void tm1638_send_7seg_data(uint8_t pos, uint8_t val);
 void tm1638_init(tm1638_t tm1638);
 

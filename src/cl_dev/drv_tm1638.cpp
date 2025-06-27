@@ -111,18 +111,38 @@ void tm1638_send_7seg_data(uint8_t pos, uint8_t val)
  * 
  * @return uint8_t レジスタ値
  */
-uint8_t tm1638_read_key_register(void)
+uint8_t tm1638_read_key(void)
 {
-    uint8_t i, data,key_reg;
+    uint8_t i, key = 0;
+    uint8_t byte[KEY_REG_BYTE] = {0};
 
+    memset(&byte[0], 0x00, sizeof(byte));
+
+    // キーレジスタ読み出し
     digitalWrite(s_tm1638.stb_pin, LOW);
-
     shitf_out_byte_data(READ_KEY_REGISTER);
     pinMode(s_tm1638.dio_pin, INPUT);
     delayMicroseconds(2); // 仕様では最小2usec
-    data = shitf_in_byte_data();
+    for (i = 0; i < 1; i++)
+    {
+        byte[i] = shitf_in_byte_data();
+        Serial.printf("[DEBUG]TM1638 Key Reg%d = 0x%02\n", i, byte[i]);
+    }
     digitalWrite(s_tm1638.stb_pin, HIGH);
     pinMode(s_tm1638.dio_pin, OUTPUT);
 
-    return data;
+    // キーの判定
+    byte[0] = byte[0] & KEY_REG_KS1_KS2;
+    byte[1] = byte[1] & KEY_REG_KS3_KS4;
+    byte[2] = byte[2] & KEY_REG_KS5_KS6;
+    byte[3] = byte[3] & KEY_REG_KS7_KS8;
+
+    for (i = 0; i < KEY_REG_BYTE; i++)
+    {
+        if(byte[i] != 0){
+            key = byte[i];
+        }
+    }
+
+    return key;
 }

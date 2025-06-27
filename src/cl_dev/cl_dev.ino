@@ -31,11 +31,12 @@ void setup()
 
 void loop()
 {
-    uint8_t key_reg;
+    uint8_t key;
 
-    key_reg = tm1638_read_key_register();
-    if (key_reg != s_key) {
-        Serial.printf("[DEBUG]TM1638 Key Reg = %d\n", key_reg);
+    key = tm1638_read_key();
+    if (key != s_key) {
+        Serial.printf("[DEBUG]TM1638 Key = 0x%02\n", key);
     }
-    delay(100);
+    s_key = key;
+    delay(1000);
 }
