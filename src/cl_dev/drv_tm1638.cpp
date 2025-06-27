@@ -14,10 +14,21 @@
 static tm1638_t s_tm1638;
 
 static void send_cmd(uint8_t cmd);
+static void shitf_out_byte_data(uint8_t data);
+static uint8_t shitf_in_byte_data(void);
 
-void shitf_out_byte_data(uint8_t data)
+static void shitf_out_byte_data(uint8_t data)
 {
     shiftOut(s_tm1638.dio_pin, s_tm1638.clk_pin, LSBFIRST, data);
+}
+
+static uint8_t shitf_in_byte_data(void)
+{
+    uint8_t read_val;
+
+    read_val = shiftIn(s_tm1638.dio_pin, s_tm1638.clk_pin, LSBFIRST);
+
+    return read_val;
 }
 
 static void send_cmd(uint8_t cmd)
@@ -93,4 +104,25 @@ void tm1638_send_7seg_data(uint8_t pos, uint8_t val)
     shitf_out_byte_data(seg_addr);
     shitf_out_byte_data(val);
     digitalWrite(s_tm1638.stb_pin, HIGH);
+}
+
+/**
+ * @brief キースキャンレジスタの読み出し
+ * 
+ * @return uint8_t レジスタ値
+ */
+uint8_t tm1638_read_key_register(void)
+{
+    uint8_t i, data,key_reg;
+
+    digitalWrite(s_tm1638.stb_pin, LOW);
+
+    shitf_out_byte_data(READ_KEY_REGISTER);
+    pinMode(s_tm1638.dio_pin, INPUT);
+    delayMicroseconds(2); // 仕様では最小2usec
+    data = shitf_in_byte_data();
+    digitalWrite(s_tm1638.stb_pin, HIGH);
+    pinMode(s_tm1638.dio_pin, OUTPUT);
+
+    return data;
 }
