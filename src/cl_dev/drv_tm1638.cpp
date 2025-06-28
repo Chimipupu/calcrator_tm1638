@@ -16,6 +16,10 @@ static tm1638_t s_tm1638;
 static void send_cmd(uint8_t cmd);
 static void shitf_out_byte_data(uint8_t data);
 static uint8_t shitf_in_byte_data(void);
+static void auto_inc_addr_mode_init(void);
+static void fix_addr_mode_init(void);
+
+static uint8_t s_seg_data_buf[DISPLAY_REG_BYTE] = {0};
 
 static void shitf_out_byte_data(uint8_t data)
 {
@@ -39,14 +43,68 @@ static void send_cmd(uint8_t cmd)
 }
 
 /**
+ * @brief 自動インクリメントでの初期化処理
+ * TM1638のデータシートの1つ目のフローチャート
+ */
+static void auto_inc_addr_mode_init(void)
+{
+    uint8_t i;
+
+    // 自動インクリメントコマンド
+    digitalWrite(s_tm1638.stb_pin, LOW);
+    shitf_out_byte_data(TM1638_CMD_WRITE_DISPLAY_REG);
+    digitalWrite(s_tm1638.stb_pin, HIGH);
+
+    // ディスプレイレジスタを初期化
+    digitalWrite(s_tm1638.stb_pin, LOW);
+    shitf_out_byte_data(TM1638_CMD_ADDR_BASE);
+    for(i = 0; i < DISPLAY_REG_BYTE; i++)
+    {
+        shitf_out_byte_data(s_seg_data_buf[i]);
+    }
+    digitalWrite(s_tm1638.stb_pin, HIGH);
+
+    // 輝度の初期化
+    digitalWrite(s_tm1638.stb_pin, LOW);
+    shitf_out_byte_data(TM1638_CMD_DISPLAY_MAX_BRIGHTNESS);
+    digitalWrite(s_tm1638.stb_pin, HIGH);
+}
+
+/**
+ * @brief アドレス指定での初期化処理
+ * TM1638のデータシートの2つ目のフローチャート
+ */
+static void fix_addr_mode_init(void)
+{
+    uint8_t i;
+
+    // 自動インクリメントコマンド
+    digitalWrite(s_tm1638.stb_pin, LOW);
+    shitf_out_byte_data(TM1638_CMD_FIXED_ADDR);
+    digitalWrite(s_tm1638.stb_pin, HIGH);
+
+    // ディスプレイレジスタを初期化
+    for(i = 0; i < DISPLAY_REG_BYTE; i++)
+    {
+        digitalWrite(s_tm1638.stb_pin, LOW);
+        shitf_out_byte_data(TM1638_CMD_ADDR_BASE | i);
+        shitf_out_byte_data(s_seg_data_buf[i]);
+        digitalWrite(s_tm1638.stb_pin, HIGH);
+    }
+
+    // 輝度の初期化
+    digitalWrite(s_tm1638.stb_pin, LOW);
+    shitf_out_byte_data(TM1638_CMD_DISPLAY_MAX_BRIGHTNESS);
+    digitalWrite(s_tm1638.stb_pin, HIGH);
+}
+
+/**
  * @brief TM1638初期化
  * 
  * @param p_tm1638 TM1638初期化構造体のポインタ
  */
 void tm1638_init(tm1638_t tm1638)
 {
-    uint8_t i;
-
     s_tm1638 = tm1638;
 
     // GPIO初期化
@@ -57,26 +115,29 @@ void tm1638_init(tm1638_t tm1638)
     digitalWrite(s_tm1638.clk_pin, HIGH);
     digitalWrite(s_tm1638.dio_pin, HIGH);
 
-    // [TM1638のデータシートの(4)のフローチャート]
-    // ディスプレイ有効を設定
-    digitalWrite(s_tm1638.stb_pin, LOW);
-    shitf_out_byte_data(TM1638_CMD_WRITE_DISPLAY_REG);
-    digitalWrite(s_tm1638.stb_pin, HIGH);
+    // 7セグデータの初期値を詰め込み
+    s_seg_data_buf[0] = SEG_LED_8;  // SEG1~8のデータ
+    s_seg_data_buf[1] = 0;          // SEG9,10データ
+    s_seg_data_buf[2] = SEG_LED_7;
+    s_seg_data_buf[3] = 0;
+    s_seg_data_buf[4] = SEG_LED_6;
+    s_seg_data_buf[5] = 0;
+    s_seg_data_buf[6] = SEG_LED_5;
+    s_seg_data_buf[7] = 0;
+    s_seg_data_buf[8] = SEG_LED_4;
+    s_seg_data_buf[9] = 0;
+    s_seg_data_buf[10] = SEG_LED_3;
+    s_seg_data_buf[11] = 0;
+    s_seg_data_buf[12] = SEG_LED_2;
+    s_seg_data_buf[13] = 0;
+    s_seg_data_buf[14] = SEG_LED_1;
+    s_seg_data_buf[15] = 0;
 
-    // ディスプレイレジスタを初期化
-    digitalWrite(s_tm1638.stb_pin, LOW);
-    shitf_out_byte_data(TM1638_CMD_ADDR_BASE);
-    for(i = 0; i < (DISPLAY_REG_BYTE / 2); i++)
-    {
-        shitf_out_byte_data(SEG_LED_BIT_ALL);
-        shitf_out_byte_data(0); // SEG9,10はないから0
-    }
-    digitalWrite(s_tm1638.stb_pin, HIGH);
-
-    // 輝度の初期化
-    digitalWrite(s_tm1638.stb_pin, LOW);
-    shitf_out_byte_data(TM1638_CMD_DISPLAY_MAX_BRIGHTNESS);
-    digitalWrite(s_tm1638.stb_pin, HIGH);
+    #if 1
+    auto_inc_addr_mode_init();
+#else
+    fix_addr_mode_init();
+#endif
 }
 
 /**
