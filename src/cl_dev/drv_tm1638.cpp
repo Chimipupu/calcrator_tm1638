@@ -16,8 +16,8 @@ static tm1638_t s_tm1638;
 static void send_cmd(uint8_t cmd);
 static void shitf_out_byte_data(uint8_t data);
 static uint8_t shitf_in_byte_data(void);
-static void auto_inc_addr_mode_init(void);
-static void fix_addr_mode_init(void);
+static void auto_inc_addr_mode_init(uint8_t *p_data_buf);
+static void fix_addr_mode_init(uint8_t *p_data_buf);
 
 static uint8_t s_seg_data_buf[DISPLAY_REG_BYTE] = {0};
 
@@ -44,9 +44,10 @@ static void send_cmd(uint8_t cmd)
 
 /**
  * @brief 自動インクリメントでの初期化処理
- * TM1638のデータシートの1つ目のフローチャート
+ * 
+ * @param p_data_buf 7セグの表示データ
  */
-static void auto_inc_addr_mode_init(void)
+static void auto_inc_addr_mode_init(uint8_t *p_data_buf)
 {
     uint8_t i;
 
@@ -60,7 +61,8 @@ static void auto_inc_addr_mode_init(void)
     shitf_out_byte_data(TM1638_CMD_ADDR_BASE);
     for(i = 0; i < DISPLAY_REG_BYTE; i++)
     {
-        shitf_out_byte_data(s_seg_data_buf[i]);
+        shitf_out_byte_data(*p_data_buf);
+        p_data_buf++;
     }
     digitalWrite(s_tm1638.stb_pin, HIGH);
 
@@ -72,9 +74,10 @@ static void auto_inc_addr_mode_init(void)
 
 /**
  * @brief アドレス指定での初期化処理
- * TM1638のデータシートの2つ目のフローチャート
+ * 
+ * @param p_data_buf 7セグの表示データ
  */
-static void fix_addr_mode_init(void)
+ static void fix_addr_mode_init(uint8_t *p_data_buf)
 {
     uint8_t i;
 
@@ -88,7 +91,8 @@ static void fix_addr_mode_init(void)
     {
         digitalWrite(s_tm1638.stb_pin, LOW);
         shitf_out_byte_data(TM1638_CMD_ADDR_BASE | i);
-        shitf_out_byte_data(s_seg_data_buf[i]);
+        shitf_out_byte_data(*p_data_buf);
+        p_data_buf++;
         digitalWrite(s_tm1638.stb_pin, HIGH);
     }
 
@@ -133,10 +137,10 @@ void tm1638_init(tm1638_t tm1638)
     s_seg_data_buf[14] = SEG_LED_1;
     s_seg_data_buf[15] = 0;
 
-    #if 1
-    auto_inc_addr_mode_init();
+#if 1
+    auto_inc_addr_mode_init(&s_seg_data_buf[0]);
 #else
-    fix_addr_mode_init();
+    fix_addr_mode_init(&s_seg_data_buf[0]);
 #endif
 }
 
