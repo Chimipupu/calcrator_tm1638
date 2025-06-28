@@ -31,8 +31,15 @@ void setup()
 
 void loop()
 {
-    uint8_t key;
+    uint8_t i, key = 0;
 
+    // 7セグの表示を更新
+    for (i = 0; i < g_tm1638.seg_cnt; i++)
+    {
+        tm1638_send_7seg_data(i, i);
+    }
+
+    // キースキャン
     key = tm1638_read_key();
     if (key != s_key) {
         Serial.printf("[DEBUG]TM1638 Key = 0x%02\n", key);
