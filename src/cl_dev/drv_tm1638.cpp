@@ -1,3 +1,4 @@
+#include <sys/_stdint.h>
 /**
  * @file drv_tm1638.cpp
  * @author Chimipupu(https://github.com/Chimipupu)
@@ -14,23 +15,44 @@
 static tm1638_t s_tm1638;
 
 static void send_cmd(uint8_t cmd);
-static void shitf_out_byte_data(uint8_t data);
-static uint8_t shitf_in_byte_data(void);
+static void shitf_out_byte_data(uint8_t data, bit_order bitOrder);
+static uint8_t shitf_in_byte_data(bit_order bitOrder);
 static void auto_inc_addr_mode_init(uint8_t *p_data_buf);
 static void fix_addr_mode_init(uint8_t *p_data_buf);
 
 static uint8_t s_seg_data_buf[DISPLAY_REG_BYTE] = {0};
 
-static void shitf_out_byte_data(uint8_t data)
+static void shitf_out_byte_data(uint8_t data, bit_order bitOrder)
 {
-    shiftOut(s_tm1638.dio_pin, s_tm1638.clk_pin, LSBFIRST, data);
+    uint8_t i = 0;
+
+    for (i = 0; i < 8; i++)
+    {
+        if (bitOrder == LSB_FIRST) {
+            digitalWrite(s_tm1638.dio_pin, !!(data & (1 << i)) ? HIGH : LOW);
+        } else {
+            digitalWrite(s_tm1638.dio_pin, !!(data & (1 << (7 - i))) ? HIGH : LOW);
+        }
+
+        digitalWrite(s_tm1638.clk_pin, HIGH);
+        digitalWrite(s_tm1638.clk_pin, LOW);
+    }
 }
 
-static uint8_t shitf_in_byte_data(void)
+static uint8_t shitf_in_byte_data(bit_order bitOrder)
 {
-    uint8_t read_val;
+    uint8_t i, read_val = 0;
 
-    read_val = shiftIn(s_tm1638.dio_pin, s_tm1638.clk_pin, LSBFIRST);
+    for (i = 0; i < 8; ++i)
+    {
+        digitalWrite(s_tm1638.clk_pin, HIGH);
+        if (bitOrder == LSB_FIRST) {
+            read_val |= digitalRead(s_tm1638.dio_pin) << i;
+        } else {
+            read_val |= digitalRead(s_tm1638.dio_pin) << (7 - i);
+        }
+        digitalWrite(s_tm1638.clk_pin, LOW);
+    }
 
     return read_val;
 }
@@ -38,7 +60,7 @@ static uint8_t shitf_in_byte_data(void)
 static void send_cmd(uint8_t cmd)
 {
     digitalWrite(s_tm1638.stb_pin, LOW);
-    shitf_out_byte_data(cmd);
+    shitf_out_byte_data(cmd, LSB_FIRST);
     digitalWrite(s_tm1638.stb_pin, HIGH);
 }
 
@@ -53,22 +75,22 @@ static void auto_inc_addr_mode_init(uint8_t *p_data_buf)
 
     // 自動インクリメントコマンド
     digitalWrite(s_tm1638.stb_pin, LOW);
-    shitf_out_byte_data(TM1638_CMD_WRITE_DISPLAY_REG);
+    shitf_out_byte_data(TM1638_CMD_WRITE_DISPLAY_REG, LSB_FIRST);
     digitalWrite(s_tm1638.stb_pin, HIGH);
 
     // ディスプレイレジスタを初期化
     digitalWrite(s_tm1638.stb_pin, LOW);
-    shitf_out_byte_data(TM1638_CMD_ADDR_BASE);
+    shitf_out_byte_data(TM1638_CMD_ADDR_BASE, LSB_FIRST);
     for(i = 0; i < DISPLAY_REG_BYTE; i++)
     {
-        shitf_out_byte_data(*p_data_buf);
+        shitf_out_byte_data(*p_data_buf, LSB_FIRST);
         p_data_buf++;
     }
     digitalWrite(s_tm1638.stb_pin, HIGH);
 
     // 輝度の初期化
     digitalWrite(s_tm1638.stb_pin, LOW);
-    shitf_out_byte_data(TM1638_CMD_DISPLAY_MAX_BRIGHTNESS);
+    shitf_out_byte_data(TM1638_CMD_DISPLAY_MAX_BRIGHTNESS, LSB_FIRST);
     digitalWrite(s_tm1638.stb_pin, HIGH);
 }
 
@@ -83,22 +105,22 @@ static void auto_inc_addr_mode_init(uint8_t *p_data_buf)
 
     // 自動インクリメントコマンド
     digitalWrite(s_tm1638.stb_pin, LOW);
-    shitf_out_byte_data(TM1638_CMD_FIXED_ADDR);
+    shitf_out_byte_data(TM1638_CMD_FIXED_ADDR, LSB_FIRST);
     digitalWrite(s_tm1638.stb_pin, HIGH);
 
     // ディスプレイレジスタを初期化
     for(i = 0; i < DISPLAY_REG_BYTE; i++)
     {
         digitalWrite(s_tm1638.stb_pin, LOW);
-        shitf_out_byte_data(TM1638_CMD_ADDR_BASE | i);
-        shitf_out_byte_data(*p_data_buf);
+        shitf_out_byte_data(TM1638_CMD_ADDR_BASE | i, LSB_FIRST);
+        shitf_out_byte_data(*p_data_buf, LSB_FIRST);
         p_data_buf++;
         digitalWrite(s_tm1638.stb_pin, HIGH);
     }
 
     // 輝度の初期化
     digitalWrite(s_tm1638.stb_pin, LOW);
-    shitf_out_byte_data(TM1638_CMD_DISPLAY_MAX_BRIGHTNESS);
+    shitf_out_byte_data(TM1638_CMD_DISPLAY_MAX_BRIGHTNESS, LSB_FIRST);
     digitalWrite(s_tm1638.stb_pin, HIGH);
 }
 
@@ -157,8 +179,8 @@ void tm1638_send_7seg_data(uint8_t pos, uint8_t val)
     seg_addr = (TM1638_CMD_ADDR_BASE | pos);
     send_cmd(TM1638_CMD_FIXED_ADDR);
     digitalWrite(s_tm1638.stb_pin, LOW);
-    shitf_out_byte_data(seg_addr);
-    shitf_out_byte_data(val);
+    shitf_out_byte_data(seg_addr, LSB_FIRST);
+    shitf_out_byte_data(val, LSB_FIRST);
     digitalWrite(s_tm1638.stb_pin, HIGH);
 }
 
@@ -176,13 +198,13 @@ uint8_t tm1638_read_key(void)
 
     // キーレジスタ読み出し
     digitalWrite(s_tm1638.stb_pin, LOW);
-    shitf_out_byte_data(READ_KEY_REGISTER);
+    shitf_out_byte_data(READ_KEY_REGISTER, LSB_FIRST);
     pinMode(s_tm1638.dio_pin, INPUT);
     delayMicroseconds(2); // 仕様では最小2usec
     // 4Byteキースキャン
     for (i = 0; i < KEY_REG_BYTE; i++)
     {
-        byte[i] = shitf_in_byte_data();
+        byte[i] = shitf_in_byte_data(LSB_FIRST);
         Serial.printf("[DEBUG]TM1638 Key Reg%d = 0x%02\n", i, byte[i]);
     }
     digitalWrite(s_tm1638.stb_pin, HIGH);

@@ -15,6 +15,11 @@
 #include <string.h>
 #include <Arduino.h>
 
+typedef enum {
+    LSB_FIRST = 0,
+    MSB_FIRST = 1,
+} bit_order;
+
 // データ設定コマンド
 #define TM1638_CMD_WRITE_DISPLAY_REG        0x40  // ディスプレイレジスタ書き込み
 #define TM1638_CMD_READ_KEY_DATA            0x42  // キースキャンデータ読み出し
