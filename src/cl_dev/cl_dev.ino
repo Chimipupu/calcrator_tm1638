@@ -20,17 +20,26 @@ void setup()
     Serial.begin(115200);
 
     // TM1638初期化
+#if 1
+    // Arduino Nano
+    g_tm1638.stb_pin = 9;
+    g_tm1638.clk_pin = 10;
+    g_tm1638.dio_pin = 11;
+#else
+    // Raspberry Pi Pico 2
     g_tm1638.stb_pin = 4;
     g_tm1638.clk_pin = 3;
     g_tm1638.dio_pin = 2;
+    Serial.printf("[DEBUG]TM1638 Drv Test\n");
+#endif
     g_tm1638.seg_cnt = 8;
     g_tm1638.key_bit_cnt = 16;
     tm1638_init(g_tm1638);
-    Serial.printf("[DEBUG]TM1638 Drv Test\n");
 }
 
 void loop()
 {
+#if 0
     uint8_t i, key = 0;
 
     // 7セグの表示を更新
@@ -46,4 +55,5 @@ void loop()
     }
     s_key = key;
     delay(1000);
+#endif
 }

@@ -92,6 +92,16 @@ typedef enum {
 #define SEG_LED_BIT_ALL                     0b01111111  // 全点灯（DPを除く）
 #define SEG_LED_DP                          0b10000000  // .（dot）
 
+// 7セグの桁選択用（DIGIT 1～8）
+#define SEG_DIGIT_1                         0           // 7セグ 1桁目
+#define SEG_DIGIT_2                         1           // 7セグ 2桁目
+#define SEG_DIGIT_3                         2           // 7セグ 3桁目
+#define SEG_DIGIT_4                         3           // 7セグ 4桁目
+#define SEG_DIGIT_5                         4           // 7セグ 5桁目
+#define SEG_DIGIT_6                         5           // 7セグ 6桁目
+#define SEG_DIGIT_7                         6           // 7セグ 7桁目
+#define SEG_DIGIT_8                         7           // 7セグ 8桁目
+
 // TM1638構造体
 typedef struct {
     uint8_t stb_pin;        // TM1638のSTBと接続しているGPIOピン

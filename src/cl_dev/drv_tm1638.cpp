@@ -1,4 +1,3 @@
-#include <sys/_stdint.h>
 /**
  * @file drv_tm1638.cpp
  * @author Chimipupu(https://github.com/Chimipupu)
@@ -19,9 +18,29 @@ static void shitf_out_byte_data(uint8_t data, bit_order bitOrder);
 static uint8_t shitf_in_byte_data(bit_order bitOrder);
 static void auto_inc_addr_mode_init(uint8_t *p_data_buf);
 static void fix_addr_mode_init(uint8_t *p_data_buf);
+static void set_seg_bits(uint8_t digit, uint8_t seg_pattern);
 
 static uint8_t s_seg_data_buf[DISPLAY_REG_BYTE] = {0};
 const uint8_t G_SEG_NUM_DATA_BUF[9] = {SEG_LED_0, SEG_LED_1, SEG_LED_2, SEG_LED_3, SEG_LED_4, SEG_LED_5, SEG_LED_6, SEG_LED_7, SEG_LED_9};
+
+# if 0
+uint8_t swap_byte(uint8_t data)
+{
+    uint8_t swap = 0;
+    swap = (data << 4) | (data >> 4);
+    return swap;
+}
+#endif
+
+static void set_seg_bits(uint8_t digit, uint8_t seg_pattern)
+{
+    for (uint8_t bit = 0; bit < 8; bit++) {
+        if (seg_pattern & (1 << bit)) {
+            uint8_t index = bit * 2;  // 偶数アドレス
+            s_seg_data_buf[index] |= (1 << digit);
+        }
+    }
+}
 
 static void shitf_out_byte_data(uint8_t data, bit_order bitOrder)
 {
@@ -135,24 +154,17 @@ void tm1638_init(tm1638_t tm1638)
     digitalWrite(s_tm1638.dio_pin, HIGH);
 
     // 7セグデータの初期値を詰め込み
-    s_seg_data_buf[0] = SEG_LED_8;  // SEG1~8のデータ
-    s_seg_data_buf[1] = 0;          // SEG9,10データ
-    s_seg_data_buf[2] = SEG_LED_7;
-    s_seg_data_buf[3] = 0;
-    s_seg_data_buf[4] = SEG_LED_6;
-    s_seg_data_buf[5] = 0;
-    s_seg_data_buf[6] = SEG_LED_5;
-    s_seg_data_buf[7] = 0;
-    s_seg_data_buf[8] = SEG_LED_4;
-    s_seg_data_buf[9] = 0;
-    s_seg_data_buf[10] = SEG_LED_3;
-    s_seg_data_buf[11] = 0;
-    s_seg_data_buf[12] = SEG_LED_2;
-    s_seg_data_buf[13] = 0;
-    s_seg_data_buf[14] = SEG_LED_1;
-    s_seg_data_buf[15] = 0;
+    // ※7セグ8桁に 「12345678」 と表示
+    set_seg_bits(SEG_DIGIT_1, SEG_LED_8);
+    set_seg_bits(SEG_DIGIT_2, SEG_LED_7);
+    set_seg_bits(SEG_DIGIT_3, SEG_LED_6);
+    set_seg_bits(SEG_DIGIT_4, SEG_LED_5);
+    set_seg_bits(SEG_DIGIT_5, SEG_LED_4);
+    set_seg_bits(SEG_DIGIT_6, SEG_LED_3);
+    set_seg_bits(SEG_DIGIT_7, SEG_LED_2);
+    set_seg_bits(SEG_DIGIT_8, SEG_LED_1);
 
-#if 1
+#if 0
     auto_inc_addr_mode_init(&s_seg_data_buf[0]);
 #else
     fix_addr_mode_init(&s_seg_data_buf[0]);
@@ -190,7 +202,7 @@ uint8_t tm1638_read_key(void)
     for (i = 0; i < KEY_REG_BYTE; i++)
     {
         byte[i] = shitf_in_byte_data(LSB_FIRST);
-        Serial.printf("[DEBUG]TM1638 Key Reg%d = 0x%02\n", i, byte[i]);
+        // Serial.printf("[DEBUG]TM1638 Key Reg%d = 0x%02\n", i, byte[i]);
     }
     digitalWrite(s_tm1638.stb_pin, HIGH);
     pinMode(s_tm1638.dio_pin, OUTPUT);
