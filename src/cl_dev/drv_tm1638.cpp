@@ -49,7 +49,6 @@ void tm1638_init(tm1638_t tm1638)
 
     s_tm1638 = tm1638;
 
-#if 1
     // GPIO初期化
     pinMode(s_tm1638.stb_pin, OUTPUT);
     pinMode(s_tm1638.clk_pin, OUTPUT);
@@ -57,34 +56,26 @@ void tm1638_init(tm1638_t tm1638)
     digitalWrite(s_tm1638.stb_pin, HIGH);
     digitalWrite(s_tm1638.clk_pin, HIGH);
     digitalWrite(s_tm1638.dio_pin, HIGH);
-#endif
 
-    // TM1638にディスプレイ有効を設定
+    // [TM1638のデータシートの(4)のフローチャート]
+    // ディスプレイ有効を設定
     digitalWrite(s_tm1638.stb_pin, LOW);
     shitf_out_byte_data(TM1638_CMD_WRITE_DISPLAY_REG);
     digitalWrite(s_tm1638.stb_pin, HIGH);
 
-    digitalWrite(s_tm1638.stb_pin, LOW);
-    shitf_out_byte_data(TM1638_CMD_DISPLAY_ON | 7);
-    digitalWrite(s_tm1638.stb_pin, HIGH);
-
-    // ディスプレイレジスタをすべて0クリア
-    digitalWrite(s_tm1638.stb_pin, LOW);
-    for(i = 0; i < 16; i++)
-    {
-        shitf_out_byte_data(0);
-    }
-    digitalWrite(s_tm1638.stb_pin, HIGH);
-
-    // 7セグ表示
+    // ディスプレイレジスタを初期化
     digitalWrite(s_tm1638.stb_pin, LOW);
     shitf_out_byte_data(TM1638_CMD_ADDR_BASE);
-    for(i = 0; i < 8; i++)
+    for(i = 0; i < (DISPLAY_REG_BYTE / 2); i++)
     {
         shitf_out_byte_data(SEG_LED_BIT_ALL);
-        shitf_out_byte_data(0);
-        // shitf_out_byte_data(i);
+        shitf_out_byte_data(0); // SEG9,10はないから0
     }
+    digitalWrite(s_tm1638.stb_pin, HIGH);
+
+    // 輝度の初期化
+    digitalWrite(s_tm1638.stb_pin, LOW);
+    shitf_out_byte_data(TM1638_CMD_DISPLAY_MAX_BRIGHTNESS);
     digitalWrite(s_tm1638.stb_pin, HIGH);
 }
 
@@ -123,7 +114,8 @@ uint8_t tm1638_read_key(void)
     shitf_out_byte_data(READ_KEY_REGISTER);
     pinMode(s_tm1638.dio_pin, INPUT);
     delayMicroseconds(2); // 仕様では最小2usec
-    for (i = 0; i < 1; i++)
+    // 4Byteキースキャン
+    for (i = 0; i < KEY_REG_BYTE; i++)
     {
         byte[i] = shitf_in_byte_data();
         Serial.printf("[DEBUG]TM1638 Key Reg%d = 0x%02\n", i, byte[i]);
