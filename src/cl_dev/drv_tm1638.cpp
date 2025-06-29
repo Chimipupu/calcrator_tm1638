@@ -1,4 +1,3 @@
-#include <sys/_stdint.h>
 /**
  * @file drv_tm1638.cpp
  * @author Chimipupu(https://github.com/Chimipupu)
@@ -22,8 +21,10 @@ static void seg_update_fixed_addr(uint8_t *p_data_buf);
 static void set_seg_bits(uint8_t digit, uint8_t seg_pattern);
 static void clear_seg_bits(uint8_t digit);
 static void seg_init(void);
+static uint8_t get_ascii_to_seg_bit(uint8_t val);
 
 static uint8_t s_seg_data_buf[DISPLAY_REG_BYTE] = {0};
+static float s_seg_digit_data = 0;
 const uint8_t G_SEG_NUM_DATA_BUF[9] = {SEG_LED_0, SEG_LED_1, SEG_LED_2, SEG_LED_3, SEG_LED_4, SEG_LED_5, SEG_LED_6, SEG_LED_7, SEG_LED_9};
 
 # if 0
@@ -180,6 +181,61 @@ static void seg_update_auto_inc_addr(uint8_t *p_data_buf)
 }
 
 /**
+ * @brief ASCIIから7セグのビットパターン取得関数
+ * 
+ * @return uint8_t 7セグのビットパターン
+ */
+static uint8_t get_ascii_to_seg_bit(uint8_t val)
+{
+    uint8_t seg_pattern = SEG_LED_BLANK;
+
+    switch (val) {
+        case '0':
+            seg_pattern = SEG_LED_0;
+            break;
+        case '1':
+            seg_pattern = SEG_LED_1;
+            break;
+        case '2':
+            seg_pattern = SEG_LED_2;
+            break;
+        case '3':
+            seg_pattern = SEG_LED_3;
+            break;
+        case '4':
+            seg_pattern = SEG_LED_4;
+            break;
+        case '5':
+            seg_pattern = SEG_LED_5;
+            break;
+        case '6':
+            seg_pattern = SEG_LED_6;
+            break;
+        case '7':
+            seg_pattern = SEG_LED_7;
+            break;
+        case '8':
+            seg_pattern = SEG_LED_8;
+            break;
+        case '9':
+            seg_pattern = SEG_LED_9;
+            break;
+        case '/':
+            seg_pattern = SEG_LED_9;
+            break;
+        case '.':
+            seg_pattern = SEG_LED_DP;
+            break;
+        case ' ':
+        default:
+            seg_pattern = SEG_LED_BLANK;
+            break;
+    }
+
+    return seg_pattern;
+}
+
+/**
  * @brief TM1638初期化
  * 
  * @param p_tm1638 TM1638初期化構造体のポインタ
@@ -285,49 +341,7 @@ void tm1638_float_to_7seg(float val)
 
     for (i = 7; ((str[i] != '\0') || seg_index < 8); i--)
     {
-        switch (str[i]) {
-            case '0':
-                seg_pattern = SEG_LED_0;
-                break;
-            case '1':
-                seg_pattern = SEG_LED_1;
-                break;
-            case '2':
-                seg_pattern = SEG_LED_2;
-                break;
-            case '3':
-                seg_pattern = SEG_LED_3;
-                break;
-            case '4':
-                seg_pattern = SEG_LED_4;
-                break;
-            case '5':
-                seg_pattern = SEG_LED_5;
-                break;
-            case '6':
-                seg_pattern = SEG_LED_6;
-                break;
-            case '7':
-                seg_pattern = SEG_LED_7;
-                break;
-            case '8':
-                seg_pattern = SEG_LED_8;
-                break;
-            case '9':
-                seg_pattern = SEG_LED_9;
-                break;
-            case '/':
-                seg_pattern = SEG_LED_9;
-                break;
-            case '.':
-                seg_pattern = SEG_LED_DP;
-                break;
-            case ' ':
-            default:
-                seg_pattern = SEG_LED_BLANK;
-                break;
-        }
-
+        seg_pattern = get_ascii_to_seg_bit(str[i]);
         set_seg_bits(seg_index, seg_pattern);
         seg_update_fixed_addr(&s_seg_data_buf[0]);
         seg_index++;
@@ -339,7 +353,7 @@ void tm1638_float_to_7seg(float val)
  * 
  * @return uint8_t レジスタ値
  */
-uint8_t tm1638_read_key(void)
+uint8_t tm1638_key_read(void)
 {
     uint8_t i, key = 0;
     uint8_t byte[KEY_REG_BYTE] = {0};
@@ -347,13 +361,18 @@ uint8_t tm1638_read_key(void)
     memset(&byte[0], 0x00, sizeof(byte));
 
     // キーレジスタ読み出し
-    send_cmd(READ_KEY_REGISTER);
-    delayMicroseconds(2); // 仕様では最小2usec
-    // 4Byteキースキャン
+    pinMode(s_tm1638.dio_pin, INPUT);
+    digitalWrite(s_tm1638.stb_pin, LOW);
+    shitf_out_byte_data(READ_KEY_REGISTER, LSB_FIRST);
+    delayMicroseconds(2); // 仕様ではTwaitは最小2usあけてから読み出し
+    // キースキャン@4Byte
     for (i = 0; i < KEY_REG_BYTE; i++)
     {
         byte[i] = shitf_in_byte_data(LSB_FIRST);
-        // Serial.printf("[DEBUG]TM1638 Key Reg%d = 0x%02\n", i, byte[i]);
+        // delayMicroseconds(100);
+        if (byte[i] != 0) {
+            Serial.printf("[DEBUG]TM1638 Key Reg%d = 0x%02X\n", i, byte[i]);
+        }
     }
     digitalWrite(s_tm1638.stb_pin, HIGH);
     pinMode(s_tm1638.dio_pin, OUTPUT);
@@ -373,3 +392,30 @@ uint8_t tm1638_read_key(void)
 
     return key;
 }
+
+void tm1638_update(void)
+{
+    uint8_t key = 0;
+
+    // キースキャン
+    // tm1638_key_read();
+    // Serial.printf("[DEBUG]TM1638 Key = 0x%02X\n", key);
+
+    // 7セグの表示を更新
+    s_seg_digit_data = 3.141592;
+    tm1638_float_to_7seg(s_seg_digit_data);
+    // Serial.printf("[DEBUG]TM1638 Seg = %f\n", s_seg_digit_data);
+}
+
+#ifdef TM1638_DRV_DEBUG
+//********* (DEBUG)デバッグ関連 ************//
+void dbg_7seg_test(void)
+{
+    // 整数
+    tm1638_uint32_to_7seg(12345678);
+    delay(1000);
+    // 浮動小数
+    tm1638_float_to_7seg(3.141592);
+    delay(1000);
+}
+#endif

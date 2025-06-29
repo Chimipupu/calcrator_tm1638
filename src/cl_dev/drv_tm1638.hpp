@@ -15,6 +15,12 @@
 #include <string.h>
 #include <Arduino.h>
 
+// (DEBU)デバッグ有効マクロ
+// #define TM1638_DRV_DEBUG
+#ifdef TM1638_DRV_DEBUG
+void dbg_7seg_test(void);
+#endif // TM1638_DRV_DEBUG
+
 typedef enum {
     LSB_FIRST = 0,
     MSB_FIRST = 1,
@@ -116,7 +122,8 @@ typedef struct {
 
 void tm1638_uint32_to_7seg(uint32_t val);
 void tm1638_float_to_7seg(float val);
-uint8_t tm1638_read_key(void);
+uint8_t tm1638_key_read(void);
 void tm1638_init(tm1638_t tm1638);
+void tm1638_update(void);
 
 #endif // DRV_TM1638_HPP
