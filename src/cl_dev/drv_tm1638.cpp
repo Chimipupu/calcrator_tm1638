@@ -17,8 +17,8 @@ static tm1638_t s_tm1638;
 static void send_cmd(uint8_t cmd);
 static void shitf_out_byte_data(uint8_t data, bit_order bitOrder);
 static uint8_t shitf_in_byte_data(bit_order bitOrder);
-static void auto_inc_addr_mode_init(uint8_t *p_data_buf);
-static void fix_addr_mode_init(uint8_t *p_data_buf);
+static void seg_update_auto_inc_addr(uint8_t *p_data_buf);
+static void seg_update_fixed_addr(uint8_t *p_data_buf);
 static void set_seg_bits(uint8_t digit, uint8_t seg_pattern);
 static void clear_seg_bits(uint8_t digit);
 static void seg_init(void);
@@ -50,7 +50,7 @@ static void seg_init(void)
     set_seg_bits(SEG_DIGIT_7, SEG_LED_BLANK);
     set_seg_bits(SEG_DIGIT_8, SEG_LED_BLANK);
 
-    auto_inc_addr_mode_init(&s_seg_data_buf[0]);
+    seg_update_auto_inc_addr(&s_seg_data_buf[0]);
 }
 
 /**
@@ -128,11 +128,11 @@ static void send_cmd(uint8_t cmd)
 }
 
 /**
- * @brief 自動インクリメントでの初期化処理
+ * @brief 自動インクリメントでのディスプレイレジスタ更新
  * 
  * @param p_data_buf 7セグの表示データ
  */
-static void auto_inc_addr_mode_init(uint8_t *p_data_buf)
+static void seg_update_auto_inc_addr(uint8_t *p_data_buf)
 {
     uint8_t i;
 
@@ -154,11 +154,11 @@ static void auto_inc_addr_mode_init(uint8_t *p_data_buf)
 }
 
 /**
- * @brief アドレス指定での初期化処理
+ * @brief アドレス指定でのディスプレイレジスタ更新
  * 
  * @param p_data_buf 7セグの表示データ
  */
- static void fix_addr_mode_init(uint8_t *p_data_buf)
+ static void seg_update_fixed_addr(uint8_t *p_data_buf)
 {
     uint8_t i;
 
@@ -264,11 +264,7 @@ void tm1638_uint32_to_7seg(uint32_t val)
                     break;
             }
             set_seg_bits(i, seg_pattern);
-#if 1
-            auto_inc_addr_mode_init(&s_seg_data_buf[0]);
-#else
-            fix_addr_mode_init(&s_seg_data_buf[0]);
-#endif
+            seg_update_fixed_addr(&s_seg_data_buf[0]);
         }
     }
 }
@@ -333,7 +329,7 @@ void tm1638_float_to_7seg(float val)
         }
 
         set_seg_bits(seg_index, seg_pattern);
-        fix_addr_mode_init(&s_seg_data_buf[0]);
+        seg_update_fixed_addr(&s_seg_data_buf[0]);
         seg_index++;
     }
 }
