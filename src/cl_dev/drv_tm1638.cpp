@@ -19,6 +19,7 @@ static uint8_t shitf_in_byte_data(bit_order bitOrder);
 static void auto_inc_addr_mode_init(uint8_t *p_data_buf);
 static void fix_addr_mode_init(uint8_t *p_data_buf);
 static void set_seg_bits(uint8_t digit, uint8_t seg_pattern);
+static void clear_seg_bits(uint8_t digit);
 
 static uint8_t s_seg_data_buf[DISPLAY_REG_BYTE] = {0};
 const uint8_t G_SEG_NUM_DATA_BUF[9] = {SEG_LED_0, SEG_LED_1, SEG_LED_2, SEG_LED_3, SEG_LED_4, SEG_LED_5, SEG_LED_6, SEG_LED_7, SEG_LED_9};
@@ -32,9 +33,32 @@ uint8_t swap_byte(uint8_t data)
 }
 #endif
 
+
+/**
+ * @brief 指定の7セグ桁のビットをクリア
+ * @param digit 7セグの桁（0〜7）
+ */
+static void clear_seg_bits(uint8_t digit)
+{
+    for (uint8_t bit = 0; bit < 8; bit++)
+    {
+        uint8_t index = bit * 2;  // 偶数アドレス
+        s_seg_data_buf[index] &= ~(1 << digit);
+    }
+}
+
+/**
+ * @brief 指定の7セグ桁のビットを設定
+ * 
+ * @param digit 7セグの桁（0〜7）
+ * @param seg_pattern 7セグのビットパターン
+ */
 static void set_seg_bits(uint8_t digit, uint8_t seg_pattern)
 {
-    for (uint8_t bit = 0; bit < 8; bit++) {
+    clear_seg_bits(digit);
+
+    for (uint8_t bit = 0; bit < 8; bit++)
+    {
         if (seg_pattern & (1 << bit)) {
             uint8_t index = bit * 2;  // 偶数アドレス
             s_seg_data_buf[index] |= (1 << digit);
@@ -175,12 +199,16 @@ void tm1638_init(tm1638_t tm1638)
  * @brief 7セグLEDの数字データ送信
  * 
  * @param pos 何桁目の7セグか
- * @param val 7セグのビットパターンデータ
+ * @param val 0~9まで
  */
-void tm1638_send_7seg_data(uint8_t pos, uint8_t val)
+void tm1638_set_7seg_num_data(uint8_t pos, uint8_t val)
 {
-    s_seg_data_buf[pos * 2] = G_SEG_NUM_DATA_BUF[val];
+    set_seg_bits(pos, G_SEG_NUM_DATA_BUF[val]);
+#if 1
+    auto_inc_addr_mode_init(&s_seg_data_buf[0]);
+#else
     fix_addr_mode_init(&s_seg_data_buf[0]);
+#endif
 }
 
 /**

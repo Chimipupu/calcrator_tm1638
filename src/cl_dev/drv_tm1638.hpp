@@ -112,7 +112,7 @@ typedef struct {
 } tm1638_t;
 
 uint8_t tm1638_read_key(void);
-void tm1638_send_7seg_data(uint8_t pos, uint8_t val);
+void tm1638_set_7seg_num_data(uint8_t pos, uint8_t val);
 void tm1638_init(tm1638_t tm1638);
 
 #endif // DRV_TM1638_HPP
