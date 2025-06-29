@@ -111,8 +111,8 @@ typedef struct {
     uint8_t key_bit_cnt;    // キースイッチの数（MAX:3x8）
 } tm1638_t;
 
+void tm1638_uint32_to_7seg(uint32_t val);
 uint8_t tm1638_read_key(void);
-void tm1638_set_7seg_num_data(uint8_t pos, uint8_t val);
 void tm1638_init(tm1638_t tm1638);
 
 #endif // DRV_TM1638_HPP

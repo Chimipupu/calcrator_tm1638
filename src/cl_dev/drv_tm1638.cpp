@@ -196,19 +196,76 @@ void tm1638_init(tm1638_t tm1638)
 }
 
 /**
- * @brief 7セグLEDの数字データ送信
- * 
- * @param pos 何桁目の7セグか
- * @param val 0~9まで
+ * @brief uint32の値を8桁の7セグに表示
+ * @param val 表示するuint32の値
  */
-void tm1638_set_7seg_num_data(uint8_t pos, uint8_t val)
+void tm1638_uint32_to_7seg(uint32_t val)
 {
-    set_seg_bits(pos, G_SEG_NUM_DATA_BUF[val]);
-#if 1
-    auto_inc_addr_mode_init(&s_seg_data_buf[0]);
-#else
-    fix_addr_mode_init(&s_seg_data_buf[0]);
-#endif
+    // 8桁で表示できる最大の整数か?
+    if (val >= 99999999) {
+        return;
+    } else {
+        for (int i = 0; i < 8; i++)
+        {
+            uint8_t digit = val % 10;
+            val /= 10;
+
+            clear_seg_bits(i);
+
+            uint8_t seg_pattern;
+            switch (digit) {
+                case 0:
+                    seg_pattern = SEG_LED_0;
+                    break;
+
+                case 1:
+                    seg_pattern = SEG_LED_1;
+                    break;
+
+                case 2:
+                    seg_pattern = SEG_LED_2;
+                    break;
+
+                case 3:
+                    seg_pattern = SEG_LED_3;
+                    break;
+
+                case 4:
+                    seg_pattern = SEG_LED_4;
+                    break;
+
+                case 5:
+                    seg_pattern = SEG_LED_5;
+                    break;
+
+                case 6:
+                    seg_pattern = SEG_LED_6;
+                    break;
+
+                case 7:
+                    seg_pattern = SEG_LED_7;
+                    break;
+
+                case 8:
+                    seg_pattern = SEG_LED_8;
+                    break;
+
+                case 9:
+                    seg_pattern = SEG_LED_9;
+                    break;
+
+                default:
+                    seg_pattern = SEG_LED_BLANK;
+                    break;
+            }
+            set_seg_bits(i, seg_pattern);
+    #if 1
+            auto_inc_addr_mode_init(&s_seg_data_buf[0]);
+    #else
+            fix_addr_mode_init(&s_seg_data_buf[0]);
+    #endif
+        }
+    }
 }
 
 /**
