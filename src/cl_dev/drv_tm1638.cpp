@@ -1,3 +1,4 @@
+#include <sys/_stdint.h>
 /**
  * @file drv_tm1638.cpp
  * @author Chimipupu(https://github.com/Chimipupu)
@@ -20,6 +21,7 @@ static void auto_inc_addr_mode_init(uint8_t *p_data_buf);
 static void fix_addr_mode_init(uint8_t *p_data_buf);
 static void set_seg_bits(uint8_t digit, uint8_t seg_pattern);
 static void clear_seg_bits(uint8_t digit);
+static void seg_init(void);
 
 static uint8_t s_seg_data_buf[DISPLAY_REG_BYTE] = {0};
 const uint8_t G_SEG_NUM_DATA_BUF[9] = {SEG_LED_0, SEG_LED_1, SEG_LED_2, SEG_LED_3, SEG_LED_4, SEG_LED_5, SEG_LED_6, SEG_LED_7, SEG_LED_9};
@@ -33,6 +35,23 @@ uint8_t swap_byte(uint8_t data)
 }
 #endif
 
+/**
+ * @brief 7セグの表示を初期化
+ * 
+ */
+static void seg_init(void)
+{
+    set_seg_bits(SEG_DIGIT_1, SEG_LED_BLANK);
+    set_seg_bits(SEG_DIGIT_2, SEG_LED_BLANK);
+    set_seg_bits(SEG_DIGIT_3, SEG_LED_BLANK);
+    set_seg_bits(SEG_DIGIT_4, SEG_LED_BLANK);
+    set_seg_bits(SEG_DIGIT_5, SEG_LED_BLANK);
+    set_seg_bits(SEG_DIGIT_6, SEG_LED_BLANK);
+    set_seg_bits(SEG_DIGIT_7, SEG_LED_BLANK);
+    set_seg_bits(SEG_DIGIT_8, SEG_LED_BLANK);
+
+    auto_inc_addr_mode_init(&s_seg_data_buf[0]);
+}
 
 /**
  * @brief 指定の7セグ桁のビットをクリア
@@ -177,22 +196,8 @@ void tm1638_init(tm1638_t tm1638)
     digitalWrite(s_tm1638.clk_pin, HIGH);
     digitalWrite(s_tm1638.dio_pin, HIGH);
 
-    // 7セグデータの初期値を詰め込み
-    // ※7セグ8桁に 「12345678」 と表示
-    set_seg_bits(SEG_DIGIT_1, SEG_LED_8);
-    set_seg_bits(SEG_DIGIT_2, SEG_LED_7);
-    set_seg_bits(SEG_DIGIT_3, SEG_LED_6);
-    set_seg_bits(SEG_DIGIT_4, SEG_LED_5);
-    set_seg_bits(SEG_DIGIT_5, SEG_LED_4);
-    set_seg_bits(SEG_DIGIT_6, SEG_LED_3);
-    set_seg_bits(SEG_DIGIT_7, SEG_LED_2);
-    set_seg_bits(SEG_DIGIT_8, SEG_LED_1);
-
-#if 0
-    auto_inc_addr_mode_init(&s_seg_data_buf[0]);
-#else
-    fix_addr_mode_init(&s_seg_data_buf[0]);
-#endif
+    // 7セグの表示を初期化
+    seg_init();
 }
 
 /**
@@ -201,18 +206,18 @@ void tm1638_init(tm1638_t tm1638)
  */
 void tm1638_uint32_to_7seg(uint32_t val)
 {
+    uint8_t digit = 0;
+    uint8_t seg_pattern = SEG_LED_BLANK;
+
     // 8桁で表示できる最大の整数か?
-    if (val >= 99999999) {
+    if (val >= SEG_U32_MAX) {
         return;
     } else {
         for (int i = 0; i < 8; i++)
         {
-            uint8_t digit = val % 10;
+            digit = val % 10;
             val /= 10;
 
-            clear_seg_bits(i);
-
-            uint8_t seg_pattern;
             switch (digit) {
                 case 0:
                     seg_pattern = SEG_LED_0;
@@ -259,12 +264,77 @@ void tm1638_uint32_to_7seg(uint32_t val)
                     break;
             }
             set_seg_bits(i, seg_pattern);
-    #if 1
+#if 1
             auto_inc_addr_mode_init(&s_seg_data_buf[0]);
-    #else
+#else
             fix_addr_mode_init(&s_seg_data_buf[0]);
-    #endif
+#endif
         }
+    }
+}
+
+/**
+ * @brief floatの値を8桁の7セグに表示
+ * @param val 表示するfloatの値（例: 1234.567）
+ * 小数点を含めて8桁以内に収める必要がある。
+ */
+void tm1638_float_to_7seg(float val)
+{
+    char str[32] = {0};
+    uint8_t i, seg_pattern;
+    uint8_t seg_index = 0;
+
+    memset(&str[0], 0, sizeof(str));
+    snprintf(str, sizeof(str), "%f", val);
+
+    for (i = 7; ((str[i] != '\0') || seg_index < 8); i--)
+    {
+        switch (str[i]) {
+            case '0':
+                seg_pattern = SEG_LED_0;
+                break;
+            case '1':
+                seg_pattern = SEG_LED_1;
+                break;
+            case '2':
+                seg_pattern = SEG_LED_2;
+                break;
+            case '3':
+                seg_pattern = SEG_LED_3;
+                break;
+            case '4':
+                seg_pattern = SEG_LED_4;
+                break;
+            case '5':
+                seg_pattern = SEG_LED_5;
+                break;
+            case '6':
+                seg_pattern = SEG_LED_6;
+                break;
+            case '7':
+                seg_pattern = SEG_LED_7;
+                break;
+            case '8':
+                seg_pattern = SEG_LED_8;
+                break;
+            case '9':
+                seg_pattern = SEG_LED_9;
+                break;
+            case '/':
+                seg_pattern = SEG_LED_9;
+                break;
+            case '.':
+                seg_pattern = SEG_LED_DP;
+                break;
+            case ' ':
+            default:
+                seg_pattern = SEG_LED_BLANK;
+                break;
+        }
+
+        set_seg_bits(seg_index, seg_pattern);
+        fix_addr_mode_init(&s_seg_data_buf[0]);
+        seg_index++;
     }
 }
 

@@ -102,6 +102,9 @@ typedef enum {
 #define SEG_DIGIT_7                         6           // 7セグ 7桁目
 #define SEG_DIGIT_8                         7           // 7セグ 8桁目
 
+// その他の7セグ関連
+#define SEG_U32_MAX                         99999999    // 8桁で表示できる最大の整数
+
 // TM1638構造体
 typedef struct {
     uint8_t stb_pin;        // TM1638のSTBと接続しているGPIOピン
@@ -112,6 +115,7 @@ typedef struct {
 } tm1638_t;
 
 void tm1638_uint32_to_7seg(uint32_t val);
+void tm1638_float_to_7seg(float val);
 uint8_t tm1638_read_key(void);
 void tm1638_init(tm1638_t tm1638);
 

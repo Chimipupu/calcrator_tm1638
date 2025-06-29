@@ -13,7 +13,6 @@
 
 tm1638_t g_tm1638;
 static uint8_t s_key = 0;
-static uint32_t s_num = 0;
 
 void setup()
 {
@@ -21,7 +20,7 @@ void setup()
     Serial.begin(115200);
 
     // TM1638初期化
-#if 1
+#if 0
     // Arduino Nano
     g_tm1638.stb_pin = 9;
     g_tm1638.clk_pin = 10;
@@ -43,12 +42,18 @@ void loop()
     uint8_t key = 0;
 
     // 7セグの表示を更新
+#if 0
+    static uint32_t s_num = 0;
     tm1638_uint32_to_7seg(s_num);
-    if (s_num >= 99999999) {
+    if (s_num >= SEG_U32_MAX) {
         s_num = 0;
     } else {
         s_num++;
     }
+#else
+    static float s_fp_num = 3.141592;
+    tm1638_float_to_7seg(s_fp_num);
+#endif
 
 #if 0
     // キースキャン
